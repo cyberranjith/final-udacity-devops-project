@@ -1,0 +1,4 @@
+Flask==1.0.2
+MarkupSafe==1.1.1
+pylint
+python-dateutil==2.8.0
