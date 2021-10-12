@@ -27,13 +27,16 @@ curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/miniku
 minikube version
 sudo -i
 sudo apt install conntrack
+apt-get -y install socat
 minikube start --vm-driver=none
 
 # Set up environment and files
-
+sudo -i
 apt-get install python3-venv
 python3 -m venv final
 source ./final/bin/activate
 -- checkout the project from github
 aws configure to set up credentials like access key and region
+chmod +x run_kubernetes.sh
+https://www.devopsschool.com/blog/minikube-exposing-kubernetes-workload-from-ec2-instance/
 

@@ -8,14 +8,21 @@
 dockerpath=493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj:1.0
 
 # Step 2
-# Run the Docker Hub container with kubernetes
-kubectl run latest --image=$dockerpath --port=80
+# Pull the docker image from ECR
+docker pull 493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj:1.0493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj:1.0^C
 
+# Step 3 
+# Create Deployment
+kubectl create deployment final-udacity-proj --image=$dockerpath
 
-# Step 3:
-# List kubernetes pods
-kubectl get pods
+# Step 4
+# Get Deployments
+kubectl get deployments
 
-# Step 4:
-# Forward the container port to a host
-kubectl port-forward latest 8000:80
+# Step 5:
+# Expose deployment to outside the cluster
+kubectl expose deployment final-udacity-proj --type=LoadBalancer --port=80
+
+# Step 6:
+# Get Service to view the exposed port
+kubectl get service
