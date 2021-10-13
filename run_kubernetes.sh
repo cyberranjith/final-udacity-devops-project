@@ -2,14 +2,15 @@
 
 # This tags and uploads an image to Docker Hub
 
-# Step 1:
-# This is your Docker ID/path
-#dockerpath=cyberranjith/final-udacity-proj:1.0
-dockerpath=493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj:1.0
+# Constants
+accountid=493412565407
+region=us-east-1
+tag=1.0
+dockerpath=$accountid.dkr.ecr.$region.amazonaws.com/final-udacity-proj:$tag
 
 # Step 2
 # Pull the docker image from ECR
-docker pull 493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj:1.0493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj:1.0^C
+docker pull $dockerpath
 
 # Step 3 
 # Create Deployment

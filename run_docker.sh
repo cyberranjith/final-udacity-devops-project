@@ -12,4 +12,4 @@ docker image ls
 
 # Step 3: 
 # Run flask app
-docker container run --name final-udacity-proj  -p 8000:80 final-udacity-proj:1.0 
+# docker container run --name final-udacity-proj  -p 8000:80 final-udacity-proj:1.0 
