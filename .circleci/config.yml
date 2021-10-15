@@ -1,7 +1,10 @@
 version: 2.1
 
+orbs:
+  aws-ecr: circleci/aws-ecr@7.2.0
+
 jobs:
-  build:
+  analyze:
     docker:
       - image: python:3.7.3-stretch
     
@@ -34,4 +37,20 @@ jobs:
           command: |
             . final/bin/activate
             make lint
+  
+workflows:
+  default:
+    jobs:
+      - analyze
+      - aws-ecr/build-and-push-image:
+          requires: [analyze]
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          create-repo: false
+          dockerfile: Dockerfile
+          path: .
+          region: AWS_REGION
+          repo: final-udacity-proj
+          tag: "$CIRCLE_BUILD_NUM"     
       
