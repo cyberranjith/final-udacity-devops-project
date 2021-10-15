@@ -1,0 +1,31 @@
+Description: >
+  Stack for my final udacity project
+
+Parameters:
+  ID:
+    Description: Unique identifier.
+    Type: String
+
+Resources:
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub Final-Udacity-${ID}
+      GroupDescription: Allow port 22
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: m4.large
+      SecurityGroups:
+        - Ref: InstanceSecurityGroup
+      KeyName: Custom_EC2_Key_Pair
+      ImageId: ami-036490d46656c4818 
+      Tags:
+        - Key: Name
+          Value: !Sub backend-${ID}

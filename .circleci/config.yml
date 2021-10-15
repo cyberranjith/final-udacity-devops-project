@@ -3,6 +3,16 @@ version: 2.1
 orbs:
   aws-ecr: circleci/aws-ecr@7.2.0
 
+commands:
+  destroy-environment:
+    description: Destroy back-end cloudformation stacks given a workflow ID
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack --stack-name final-udacity-project-${CIRCLE_WORKFLOW_ID:0:7}
+
 jobs:
   analyze:
     docker:
@@ -37,6 +47,43 @@ jobs:
           command: |
             . final/bin/activate
             make lint
+
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run: yum install -y tar gzip
+      - run:
+          name: Deploy the EC2 backend which hosts kubernetes cluster
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=final-udacity-project \
+              --stack-name "final-udacity-project-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Save backend url to memstash
+          command: |
+            BACKEND_URL=$(aws ec2 describe-instances \
+              --query "Reservations[*].Instances[*].PublicDnsName" \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --no-paginate --output text)
+            echo $BACKEND_URL
+            curl -H "Content-Type: text/plain" -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request PUT --data ${BACKEND_URL} https://api.memstash.io/values/backendurl_${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Add back-end public ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+              --query "Reservations[*].Instances[*].PublicIpAddress" \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --no-paginate --output text >> ~/project/.circleci/ansible/inventory.txt
+            cat ~/project/.circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      - destroy-environment
   
 workflows:
   default:
@@ -52,5 +99,7 @@ workflows:
           path: .
           region: AWS_REGION
           repo: final-udacity-proj
-          tag: "$CIRCLE_BUILD_NUM"     
+          tag: "$CIRCLE_BUILD_NUM"
+      - deploy-infrastructure:
+          requires: [aws-ecr/build-and-push-image]
       
