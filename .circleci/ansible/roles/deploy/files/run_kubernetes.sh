@@ -8,6 +8,10 @@ region=us-east-1
 tag=1.0
 dockerpath=$accountid.dkr.ecr.$region.amazonaws.com/final-udacity-proj:$tag
 
+# Step 1:
+# Authenticate docker client
+aws ecr get-login-password --region $region | docker login --username AWS --password-stdin $accountid.dkr.ecr.$region.amazonaws.com
+
 # Step 2
 # Pull the docker image from ECR
 docker pull $dockerpath

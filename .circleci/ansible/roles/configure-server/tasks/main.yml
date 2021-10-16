@@ -1,0 +1,62 @@
+---
+- name: "update apt packages"
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: "upgrade packages"
+  become: yes
+  apt:
+    upgrade: "yes"
+  
+- name: remove dependencies that are no longer required
+  become: yes
+  apt:
+    autoremove: yes
+
+- name: "create directory in remote server"
+  become: yes
+  file:
+    path: /etc/final_udacity_project
+    state: directory
+    mode: 0755
+
+- name: "install kubectl"
+  become: yes
+  get_url:
+    url: https://storage.googleapis.com/kubernetes-release/release/v1.22.2/bin/linux/amd64/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: 0755
+
+- name: "install docker"
+  become: yes
+  apt:
+    name: "docker.io"
+    state: latest
+    update_cache: yes
+
+- name: "install kubectl"
+  become: yes
+  get_url:
+    url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+    dest: /usr/local/bin/minikube
+    mode: 0755
+
+- name: "install minikube dependencies"
+  become: yes
+  apt:
+    name: ["conntrack", "socat"]
+    state: latest
+    update_cache: yes
+
+- name: "provide root permissions"
+  become: yes
+  command: sysctl fs.protected_regular=0
+
+# - name: "start minikube"
+#   become: yes
+#   command: minikube start --vm-driver=none
+
+- name: "check if minikube is running"
+  become: yes
+  shell: minikube status | grep 'Running'
