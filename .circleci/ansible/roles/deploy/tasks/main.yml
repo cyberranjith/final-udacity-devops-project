@@ -1,0 +1,5 @@
+- name: Printing critical environment variables
+  debug:
+    msg: "'{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}' is the AWS_ECR_ACCOUNT_URL environment variable."
+    msg: "'{{ lookup('env', 'AWS_REGION') }}' is the AWS_REGION environment variable."
+    msg: "'{{ lookup('env', 'CIRCLE_BUILD_NUM') }}' is the CIRCLE_BUILD_NUM environment variable."

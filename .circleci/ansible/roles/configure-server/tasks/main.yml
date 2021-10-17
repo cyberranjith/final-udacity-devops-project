@@ -1,4 +1,3 @@
----
 - name: "update apt packages"
   become: yes
   apt:
@@ -49,13 +48,13 @@
     state: latest
     update_cache: yes
 
-- name: "provide root permissions"
-  become: yes
-  command: sysctl fs.protected_regular=0
-
-# - name: "start minikube"
+# - name: "provide root permissions"
 #   become: yes
-#   command: minikube start --vm-driver=none
+#   command: sysctl fs.protected_regular=0
+
+- name: "start minikube"
+  become: yes
+  command: minikube start --vm-driver=none
 
 - name: "check if minikube is running"
   become: yes

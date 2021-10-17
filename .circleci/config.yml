@@ -105,6 +105,26 @@ jobs:
             ansible-playbook -v -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/configure-server.yml
       - destroy-environment
   
+  deploy-to-kubernetes-cluster:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["8a:42:7a:17:c4:77:f5:51:d9:b4:a9:cf:dd:71:70:c2"]
+      - attach_workspace:
+          at: ~/
+      - run:
+          name: Install dependencies
+          command: |       
+            apk add --update ansible
+            pip3 install awscli
+      - run:
+          name: Configure server
+          command: |
+            ansible-playbook -v -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy.yml
+      - destroy-environment
+  
 workflows:
   default:
     jobs:
@@ -122,6 +142,8 @@ workflows:
       #     tag: "$CIRCLE_BUILD_NUM"
       - deploy-infrastructure
           # requires: [aws-ecr/build-and-push-image]
-      - configure-infrastructure:
+      # - configure-infrastructure:
+      #     requires: [deploy-infrastructure]
+      - deploy-to-kubernetes-cluster:
+          # requires: [configure-infrastructure]
           requires: [deploy-infrastructure]
-      
