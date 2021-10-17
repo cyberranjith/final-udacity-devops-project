@@ -1,42 +1,38 @@
-# final-udacity-devops-project
-Final Udacity Devops Project
+## Final Udacity Devops Project
 
-# Required EC2 config
-Ubuntu 20.04 LTS
-m4 large
-  2 VCPU
-  16GB Memory
-8GB storage
+## CloudFront Service Endpoint
+https://d2tfbz57sm2vg2.cloudfront.net/
 
-# Commands to setup kubectl and minikube in EC2
+## AWS ECR Repository
+493412565407.dkr.ecr.us-east-1.amazonaws.com/final-udacity-proj
 
-https://www.radishlogic.com/kubernetes/running-minikube-in-aws-ec2-ubuntu/
+## Topology
+* EC2 configuration:
+    - Ubuntu 20.04 LTS
+    - m4 large
+    - 2 VCPU
+    - 16GB Memory
+    - 8GB storage
+    - Incoming traffic is allowed in port 31280 as it used to expose kubernetes service
+* Minkube is installed in EC2 instance to serve as the Kubernetes cluster
+* Docker/Kubectl are installed in the EC2 instance
 
-#install kubectl
-curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
-chmod +x ./kubectl
-sudo mv ./kubectl /usr/local/bin/kubectl
+## Deployment Strategy
+* Blue/Green deployment:
+    - After smoke testing the green deployment to ensure stability, blue deployment is deleted and CloudFront origin is updated to point to the green deployment.
 
-#install docker
-sudo apt-get update && \
-    sudo apt-get install docker.io -y
+## Circle CI Steps:
+- analyze: Lint the docker and python files
+- aws-ecr/build-and-push-image: Utilized the Circle CI Orb to build and publish docker image to ECR.
+- deploy-infrastructure: Creates the EC2 instance and sets up the required permissions to pull the docker image from ECR.
+- configure-infrastructure: Installs docker, kubernetes and minikube in EC2 instance. Also starts the minikube.
+- deploy-to-kubernetes-cluster: Pulls the docker image from ECR, creates a kubernetes deployment and exposes the deployment in port 31280.
+- smoke-test-service: Tests the service by accessing the service ec2 domain name in port 31280.
+- cloudfront-update: Updates the cloudfront origin with the stable deployment
+- cleanup: Cleanup the EC2 instance with the prior deployment
 
-#install minikube
-curl -Lo minikube https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64 && chmod +x minikube && sudo mv minikube /usr/local/bin/
-
-minikube version
-sudo -i
-sudo apt install conntrack
-apt-get -y install socat
-minikube start --vm-driver=none
-
-# Set up environment and files
-sudo -i
-apt-get install python3-venv
-python3 -m venv final
-source ./final/bin/activate
--- checkout the project from github
-aws configure to set up credentials like access key and region
-chmod +x run_kubernetes.sh
-https://www.devopsschool.com/blog/minikube-exposing-kubernetes-workload-from-ec2-instance/
-
+## Guide
+* Run minikube in EC2:
+  - https://www.radishlogic.com/kubernetes/running-minikube-in-aws-ec2-ubuntu/
+* Expose Kubernetes workload from EC2 instance:
+  - https://www.devopsschool.com/blog/minikube-exposing-kubernetes-workload-from-ec2-instance/

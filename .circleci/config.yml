@@ -66,12 +66,12 @@ jobs:
       - run:
           name: Save backend url to memstash
           command: |
-            BACKEND_URL=$(aws ec2 describe-instances \
+            SERVICE_DOMAIN_NAME=$(aws ec2 describe-instances \
               --query "Reservations[*].Instances[*].PublicDnsName" \
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --no-paginate --output text)
-            echo $BACKEND_URL
-            curl -H "Content-Type: text/plain" -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request PUT --data ${BACKEND_URL} https://api.memstash.io/values/backendurl_${CIRCLE_WORKFLOW_ID:0:7}
+            echo $SERVICE_DOMAIN_NAME
+            curl -H "Content-Type: text/plain" -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request PUT --data ${SERVICE_DOMAIN_NAME} https://api.memstash.io/values/backendurl_${CIRCLE_WORKFLOW_ID:0:7}
       - run:
           name: Add back-end public ip to ansible inventory
           command: |
@@ -84,7 +84,7 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      # - destroy-environment
+      - destroy-environment
 
   configure-infrastructure:
     docker:
@@ -124,7 +124,91 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -v -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy.yml
-      # - destroy-environment
+      - destroy-environment
+  
+  smoke-test-service:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --no-cache curl
+            apk add --no-cache --upgrade bash
+            pip3 install awscli
+      - run:
+          name: smoke test service endpoint
+          command: |
+            SERVICE_DOMAIN_NAME=$(curl -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request GET https://api.memstash.io/values/backendurl_${CIRCLE_WORKFLOW_ID:0:7})
+            SERVICE_ENDPOINT=http://${SERVICE_DOMAIN_NAME}:31280/
+            echo ${SERVICE_ENDPOINT}
+            if curl -s --head $SERVICE_ENDPOINT
+            then
+              exit 0
+            else
+              exit 1
+            fi
+      - destroy-environment
+
+  cloudfront-update:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Get old stack workflow id and save it in memstash for cleanup job, before updating the cloudfront distribution
+          command: |
+            OLD_WORKFLOW_ID=$(aws cloudformation \
+              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+              --no-paginate --output text)
+            echo $OLD_WORKFLOW_ID
+
+            if [ -z ${OLD_WORKFLOW_ID} ]
+            then
+              echo "Old Workflow ID is null"
+            else
+              curl -H "Content-Type: text/plain" -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request PUT --data ${OLD_WORKFLOW_ID} https://api.memstash.io/values/oldworkflowid_${CIRCLE_WORKFLOW_ID:0:7}
+            fi            
+
+      - run:
+          name: Update cloudfront distribution with new service endpoint url
+          command: |
+            SERVICE_DOMAIN_NAME=$(curl -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request GET https://api.memstash.io/values/backendurl_${CIRCLE_WORKFLOW_ID:0:7})
+            echo ${SERVICE_DOMAIN_NAME}
+           
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --tags project=final-udacity-proj \
+              --stack-name "final-udacity-proj-cloudfront" \
+              --parameter-overrides \
+                ServiceDomainName="${SERVICE_DOMAIN_NAME}" \
+                ServicePort="31280" \
+                WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - destroy-environment
+
+  cleanup:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout            
+      - run:
+          name: Get old stack workflow id and remove old stack instance
+          command: |
+            OLD_WORKFLOW_ID=$(curl -H "token: a2575176-4808-4e18-9482-27506ac651b0" --request GET https://api.memstash.io/values/oldworkflowid_${CIRCLE_WORKFLOW_ID:0:7})      
+            echo ${OLD_WORKFLOW_ID}
+            if [ -z ${OLD_WORKFLOW_ID} ]
+            then
+              echo "Old Workflow ID is null"
+            else
+              STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+              --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
+              echo ${STACKS}
+              if [[ "${STACKS[@]}" =~ "${OLD_WORKFLOW_ID}" ]]
+              then              
+                aws cloudformation delete-stack --stack-name final-udacity-project-${OLD_WORKFLOW_ID}
+              fi
+            fi            
   
 workflows:
   default:
@@ -146,3 +230,9 @@ workflows:
           requires: [deploy-infrastructure]
       - deploy-to-kubernetes-cluster:
           requires: [configure-infrastructure]
+      - smoke-test-service:
+          requires: [deploy-to-kubernetes-cluster]
+      - cloudfront-update:
+          requires: [smoke-test-service]
+      - cleanup:
+          requires: [cloudfront-update]

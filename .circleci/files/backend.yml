@@ -11,7 +11,7 @@ Resources:
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub Final-Udacity-${ID}
+      GroupName: !Sub final-udacity-security-group-${ID}
       GroupDescription: Allow port 22 (SSH) and 31280 (exposed service port)
       SecurityGroupIngress:
         - IpProtocol: tcp
@@ -39,14 +39,14 @@ Resources:
   ECRReadOnlyInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties: 
-      InstanceProfileName: ecr-read-only-instance-profile
+      InstanceProfileName: !Sub ecr-read-only-instance-profile-${ID}
       Roles: 
        - !Ref ECREC2ReadOnlyRole
 
   ECREC2ReadOnlyRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: ecr-ec2-read-only-role
+      RoleName: !Sub ecr-ec2-read-only-role-${ID}
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -60,7 +60,7 @@ Resources:
   ECRReadOnlyPolicy:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: ECRReadOnlyPolicy
+      PolicyName: !Sub ecr-read-only-policy-${ID}
       PolicyDocument:
         Version: 2012-10-17
         Statement:

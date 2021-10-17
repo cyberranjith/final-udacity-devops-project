@@ -1,0 +1,42 @@
+Description: >
+  Cloudfront distribution for Final Udacity Project.
+
+Parameters:
+  ServiceDomainName:
+    Description: Service endpoint
+    Type: String
+  ServicePort:
+    Description: Custom Port
+    Type: String
+  WorkflowID:
+    Description: Unique identifier.
+    Type: String
+
+Resources:
+
+  ServiceCDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Origins:
+        - DomainName: !Sub ${ServiceDomainName}
+          Id: myCustomOrigin
+          CustomOriginConfig:
+            HTTPPort: !Sub ${ServicePort}
+            HTTPSPort: '443'
+            OriginProtocolPolicy: http-only
+        Enabled: 'true'
+        DefaultCacheBehavior:
+          ForwardedValues:
+            QueryString: 'false'
+            Cookies:
+              Forward: all
+          TargetOriginId: myCustomOrigin
+          ViewerProtocolPolicy: allow-all
+
+Outputs:
+  WorkflowID:
+    Value: !Sub ${WorkflowID}
+    Description: Unique identifier
+    Export:
+      Name: WorkflowID
