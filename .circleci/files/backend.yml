@@ -6,16 +6,21 @@ Parameters:
     Description: Unique identifier.
     Type: String
 
-Resources:
+Resources: 
+
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub Final-Udacity-${ID}
-      GroupDescription: Allow port 22
+      GroupDescription: Allow port 22 (SSH) and 31280 (exposed service port)
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 31280
+          ToPort: 31280
           CidrIp: 0.0.0.0/0
 
   EC2Instance:
@@ -29,3 +34,51 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub backend-${ID}
+      IamInstanceProfile: !Ref ECRReadOnlyInstanceProfile
+  
+  ECRReadOnlyInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: ecr-read-only-instance-profile
+      Roles: 
+       - !Ref ECREC2ReadOnlyRole
+
+  ECREC2ReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ecr-ec2-read-only-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+
+  ECRReadOnlyPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: ECRReadOnlyPolicy
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ecr:GetAuthorizationToken
+              - ecr:BatchCheckLayerAvailability
+              - ecr:GetDownloadUrlForLayer
+              - ecr:GetRepositoryPolicy
+              - ecr:DescribeRepositories
+              - ecr:ListImages
+              - ecr:DescribeImages
+              - ecr:BatchGetImage
+              - ecr:GetLifecyclePolicy
+              - ecr:GetLifecyclePolicyPreview
+              - ecr:ListTagsForResource
+              - ecr:DescribeImageScanFindings
+            Resource:
+              - "*"
+      Roles:
+        - !Ref ECREC2ReadOnlyRole

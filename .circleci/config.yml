@@ -60,6 +60,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --tags project=final-udacity-project \
+              --capabilities CAPABILITY_NAMED_IAM \
               --stack-name "final-udacity-project-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
@@ -83,7 +84,7 @@ jobs:
           root: ~/
           paths:
             - project/.circleci/ansible/inventory.txt
-      - destroy-environment
+      # - destroy-environment
 
   configure-infrastructure:
     docker:
@@ -139,7 +140,6 @@ workflows:
           path: .
           region: AWS_REGION
           repo: final-udacity-proj
-          tag: "$CIRCLE_BUILD_NUM"
       - deploy-infrastructure:
           requires: [aws-ecr/build-and-push-image]
       - configure-infrastructure:

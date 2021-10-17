@@ -1,26 +1,14 @@
-- name: Printing critical environment variables
-  debug:
-    msg: "'{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}' is the AWS_ECR_ACCOUNT_URL environment variable."
-
-- name: Printing critical environment variables
-  debug:
-    msg: "'{{ lookup('env', 'AWS_REGION') }}' is the AWS_REGION environment variable."   
-
-- name: Printing critical environment variables
-  debug:
-    msg: "'{{ lookup('env', 'CIRCLE_BUILD_NUM') }}' is the CIRCLE_BUILD_NUM environment variable."
-
 - name: "Authenticate docker client"
   become: yes  
-  shell: docker login -u AWS -p $(aws ecr get-login-password --region '{{ lookup('env', 'AWS_REGION') }}') '{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}'
+  shell: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin '{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}'
 
 - name: "Pull docker image from ECR"
   become: yes
-  shell: docker pull '{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}'/final-udacity-proj:'{{ lookup('env', 'CIRCLE_BUILD_NUM') }}'
+  shell: docker pull '{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}'/final-udacity-proj:latest
 
 - name: "Create deployment"
   become: yes
-  shell: kubectl create deployment final-udacity-proj --image='{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}'/final-udacity-proj:'{{ lookup('env', 'CIRCLE_BUILD_NUM') }}'
+  shell: kubectl create deployment final-udacity-proj --image='{{ lookup('env', 'AWS_ECR_ACCOUNT_URL') }}'/final-udacity-proj:latest
 
 - name: "Get deployments"
   become: yes
@@ -30,6 +18,10 @@
   become: yes
   command: kubectl expose deployment final-udacity-proj --type=LoadBalancer --port=80
 
-- name: "Kubectl get service"
+- name: "Expose deployment to outside the cluster"
   become: yes
-  command: kubectl get service
+  shell: kubectl patch service final-udacity-proj --type='json' --patch='{{ lookup('file', 'expose_nodeport.json') }}'
+
+- name: "Check if service is exposed in expected port"
+  become: yes
+  shell: kubectl get service final-udacity-proj | grep '80:31280/TCP'

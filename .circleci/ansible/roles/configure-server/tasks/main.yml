@@ -13,13 +13,6 @@
   apt:
     autoremove: yes
 
-- name: "create directory in remote server"
-  become: yes
-  file:
-    path: /etc/final_udacity_project
-    state: directory
-    mode: 0755
-
 - name: "install kubectl"
   become: yes
   get_url:
@@ -27,10 +20,10 @@
     dest: /usr/local/bin/kubectl
     mode: 0755
 
-- name: "install docker"
+- name: "install awscli and docker"
   become: yes
   apt:
-    name: "docker.io"
+    name: ["awscli", "docker.io"]
     state: latest
     update_cache: yes
 
@@ -47,10 +40,6 @@
     name: ["conntrack", "socat"]
     state: latest
     update_cache: yes
-
-# - name: "provide root permissions"
-#   become: yes
-#   command: sysctl fs.protected_regular=0
 
 - name: "start minikube"
   become: yes
