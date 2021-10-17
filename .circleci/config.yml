@@ -123,27 +123,26 @@ jobs:
           name: Configure server
           command: |
             ansible-playbook -v -i ~/project/.circleci/ansible/inventory.txt ~/project/.circleci/ansible/deploy.yml
-      - destroy-environment
+      # - destroy-environment
   
 workflows:
   default:
     jobs:
-      # - analyze
-      # - aws-ecr/build-and-push-image:
-      #     requires: [analyze]
-      #     account-url: AWS_ECR_ACCOUNT_URL
-      #     aws-access-key-id: AWS_ACCESS_KEY_ID
-      #     aws-secret-access-key: AWS_SECRET_ACCESS_KEY
-      #     create-repo: false
-      #     dockerfile: Dockerfile
-      #     path: .
-      #     region: AWS_REGION
-      #     repo: final-udacity-proj
-      #     tag: "$CIRCLE_BUILD_NUM"
-      - deploy-infrastructure
-          # requires: [aws-ecr/build-and-push-image]
-      # - configure-infrastructure:
-      #     requires: [deploy-infrastructure]
-      - deploy-to-kubernetes-cluster:
-          # requires: [configure-infrastructure]
+      - analyze
+      - aws-ecr/build-and-push-image:
+          requires: [analyze]
+          account-url: AWS_ECR_ACCOUNT_URL
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          create-repo: false
+          dockerfile: Dockerfile
+          path: .
+          region: AWS_REGION
+          repo: final-udacity-proj
+          tag: "$CIRCLE_BUILD_NUM"
+      - deploy-infrastructure:
+          requires: [aws-ecr/build-and-push-image]
+      - configure-infrastructure:
           requires: [deploy-infrastructure]
+      - deploy-to-kubernetes-cluster:
+          requires: [configure-infrastructure]
